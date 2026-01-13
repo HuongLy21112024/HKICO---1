@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Luyện thi HKICO Scratch 2026 - Có chấm điểm</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f8ff; margin: 0; padding: 20px; min-height: 100vh; display: flex; justify-content: center; align-items: center; }
+        .container { background: white; width: 100%; max-width: 800px; padding: 30px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border-top: 10px solid #FFAB19; position: relative; }
+        
+        /* Màn hình nhập tên */
+        #start-screen { text-align: center; }
+        input[type="text"] { padding: 15px; width: 80%; font-size: 1.2em; border: 2px solid #ddd; border-radius: 8px; margin: 20px 0; outline: none; }
+        input[type="text"]:focus { border-color: #4D97FF; }
+        .btn-start { background-color: #4D97FF; color: white; padding: 15px 40px; font-size: 1.2em; border: none; border-radius: 8px; cursor: pointer; transition: 0.3s; }
+        .btn-start:hover { background-color: #3373cc; }
+
+        /* Header thông tin */
+        .header-bar { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 15px; margin-bottom: 20px; font-weight: bold; color: #555; }
+        .timer { color: #dc3545; font-size: 1.2em; display: flex; align-items: center; gap: 5px; }
+
+        /* Câu hỏi */
+        h1 { text-align: center; color: #4D97FF; margin-top: 0; }
+        .question { font-size: 1.3em; font-weight: bold; margin-bottom: 20px; color: #333; line-height: 1.5; }
+        .options { display: grid; gap: 12px; }
+        .btn-opt { padding: 15px; border: 2px solid #e0e0e0; border-radius: 10px; background: #fff; cursor: pointer; text-align: left; font-size: 1.05em; transition: 0.2s; position: relative; }
+        .btn-opt:hover { background-color: #f9f9f9; border-color: #4D97FF; }
+        
+        /* Trạng thái đúng sai (khi đang làm) */
+        .btn-opt.correct { background-color: #d4edda; border-color: #28a745; color: #155724; }
+        .btn-opt.wrong { background-color: #f8d7da; border-color: #dc3545; color: #721c24; }
+        .btn-opt:disabled { cursor: default; }
+
+        .feedback { margin-top: 20px; padding: 15px; border-radius: 8px; background-color: #e2e3e5; display: none; border-left: 5px solid #666; }
+        
+        .next-btn { display: none; width: 100%; padding: 15px; background-color: #FFAB19; color: white; border: none; border-radius: 10px; font-size: 1.2em; margin-top: 20px; cursor: pointer; font-weight: bold; }
+        .next-btn:hover { background-color: #e09200; }
+
+        /* Màn hình kết quả & Xem lại */
+        #result-screen { text-align: center; display: none; }
+        .score-box { font-size: 3em; font-weight: bold; color: #FFAB19; margin: 10px 0; }
+        .review-container { text-align: left; margin-top: 30px; border-top: 2px dashed #ccc; padding-top: 20px; max-height: 500px; overflow-y: auto; }
+        .review-item { background: #fff5f5; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #ffcccc; }
+        .review-q { font-weight: bold; margin-bottom: 10px; color: #333; }
+        .review-your-ans { color: #dc3545; font-weight: bold; }
+        .review-correct-ans { color: #28a745; font-weight: bold; }
+        .review-explain { font-style: italic; color: #555; margin-top: 5px; font-size: 0.9em; }
+        
+        .restart-btn { padding: 15px 30px; background-color: #28a745; color: white; border: none; border-radius: 8px; font-size: 1.2em; cursor: pointer; margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div id="start-screen">
+        <h1>Chào mừng đến với bài thi thử HKICO</h1>
+        <p>Vui lòng nhập họ và tên của con để bắt đầu.</p>
+        <input type="text" id="username" placeholder="Ví dụ: Nguyễn Văn An - Lớp 3A">
+        <br>
+        <button class="btn-start" onclick="startQuiz()">Bắt đầu làm bài thi</button>
+    </div>
+
+    <div id="quiz-screen" style="display: none;">
+        <div class="header-bar">
+            <span id="display-name">Thí sinh: ...</span>
+            <span class="timer">⏱ <span id="time-left">30:00</span></span>
+        </div>
+        
+        <div class="progress" style="text-align: right; color: #888; margin-bottom: 10px;">
+            Câu hỏi <span id="current-q">1</span> / 30
+        </div>
+
+        <div class="question" id="question-text">Loading...</div>
+        <div class="options" id="options-container"></div>
+        <div class="feedback" id="feedback-text"></div>
+        <button class="next-btn" id="next-button" onclick="nextQuestion()">Câu tiếp theo ➜</button>
+    </div>
+
+    <div id="result-screen">
+        <h1>Kết quả bài thi</h1>
+        <p>Thí sinh: <strong id="result-name"></strong></p>
+        <p>Thời gian hoàn thành: <span id="time-taken"></span></p>
+        <div class="score-box"><span id="final-score">0</span> / 30</div>
+        <p id="result-msg"></p>
+        
+        <div id="review-area" class="review-container" style="display: none;">
+            <h3>🔍 Xem lại các câu làm sai:</h3>
+            <div id="wrong-answers-list"></div>
+        </div>
+
+        <button class="restart-btn" onclick="location.reload()">Làm lại bài thi mới</button>
+    </div>
+</div>
+
+<script>
+    // Dữ liệu câu hỏi (Giữ nguyên bộ 30 câu)
+    const questions = [
+        { q: "1. Who developed Scratch? (Ai là người phát triển Scratch?)", a: ["Bill Gates", "Steve Jobs", "Mitchel Resnick", "Mark Zuckerberg"], correct: 2, explain: "Mitchel Resnick (nhóm Lifelong Kindergarten tại MIT) đã tạo ra Scratch." },
+        { q: "2. Which area shows how your project runs? (Khu vực nào hiển thị cách dự án hoạt động?)", a: ["Script Area", "Block Palette", "Stage (Sân khấu)", "Sprite Pane"], correct: 2, explain: "Stage (Sân khấu) là nơi hiển thị kết quả hình ảnh." },
+        { q: "3. Dimensions of the Scratch Stage? (Kích thước Sân khấu Scratch?)", a: ["480 x 360", "360 x 480", "100 x 100", "Unlimited"], correct: 0, explain: "Rộng 480 (X: -240 đến 240) và Cao 360 (Y: -180 đến 180)." },
+        { q: "4. Block sets position instantly? (Khối đặt vị trí tức thời?)", a: ["Glide to x:0 y:0", "Go to x: 0 y: 0", "Move 10 steps", "Change x by 10"], correct: 1, explain: "'Go to' dịch chuyển tức thời, 'Glide' tốn thời gian di chuyển." },
+        { q: "5. (0,0), Face 90, Move 10. New pos? (Ở (0,0), Hướng 90, Đi 10. Vị trí mới?)", a: ["(0, 10)", "(10, 0)", "(-10, 0)", "(0, -10)"], correct: 1, explain: "Hướng 90 là bên Phải, tăng X lên 10 -> (10, 0)." },
+        { q: "6. Prevent flipping upside down? (Ngăn bị lộn ngược?)", a: ["Point in direction", "Set rotation style [left-right]", "If on edge, bounce", "Turn 15 degrees"], correct: 1, explain: "'Set rotation style left-right' giữ nhân vật luôn đứng thẳng." },
+        { q: "7. Diff between 'Say' and 'Say for 2s'? (Khác nhau giữa 'Nói' và 'Nói trong 2s'?)", a: ["No diff", "1st disappears", "1st stays forever", "1st makes sound"], correct: 2, explain: "'Say' giữ lời thoại mãi, 'Say for...' sẽ biến mất sau thời gian quy định." },
+        { q: "8. Change appearance? (Đổi vẻ ngoài?)", a: ["Backdrops", "Costumes", "Sounds", "Loops"], correct: 1, explain: "Costumes (Trang phục) là các hình ảnh khác nhau của nhân vật." },
+        { q: "9. Looks category block? (Khối thuộc nhóm Hiển thị?)", a: ["Move", "Play sound", "Next costume", "Wait"], correct: 2, explain: "Next costume (Trang phục kế tiếp) thuộc nhóm Looks (Màu tím)." },
+        { q: "10. Hat block to start? (Khối mũ bắt đầu?)", a: ["Move", "When green flag clicked", "Wait", "Stop all"], correct: 1, explain: "Khối 'Khi bấm cờ xanh' dùng để bắt đầu kịch bản." },
+        { q: "11. Repeat 4 [ Repeat 2 [ Say Hello ] ]. Total? (Tổng số lần?)", a: ["4", "2", "6", "8"], correct: 3, explain: "Vòng lặp lồng nhau nhân lên: 4 x 2 = 8 lần." },
+        { q: "12. Stop script forever? (Dừng mãi mãi?)", a: ["Wait until", "Stop [all]", "Delete clone", "Forever"], correct: 1, explain: "Stop all kết thúc toàn bộ chương trình." },
+        { q: "13. 'Broadcast' used for? ('Phát tin' dùng để?)", a: ["Music", "Message to sprites", "Moving", "Drawing"], correct: 1, explain: "Gửi tín hiệu thông báo để các nhân vật khác cùng hành động." },
+        { q: "14. Shape for boolean? (Hình dạng khối Logic?)", a: ["Rectangle", "Hexagon (Lục giác)", "Oval", "Circle"], correct: 1, explain: "Khối lục giác (6 cạnh) dùng cho điều kiện Đúng/Sai." },
+        { q: "15. 'Pick random 1 to 10'? (Kết quả ngẫu nhiên?)", a: ["Always 1", "Always 10", "Any integer 1-10", "5.5"], correct: 2, explain: "Chọn bất kỳ số nguyên nào trong khoảng từ 1 đến 10." },
+        { q: "16. 'If touching color Red'? (Điều kiện chạm màu?)", a: ["Operators", "Sensing > Touching color?", "Looks", "Pen"], correct: 1, explain: "Touching color nằm trong nhóm Sensing (Cảm biến)." },
+        { q: "17. 'Mouse x' reports? ('Mouse x' báo cáo?)", a: ["Speed", "Horizontal position", "Vertical position", "Clicked"], correct: 1, explain: "X luôn đại diện cho trục ngang (Horizontal)." },
+        { q: "18. What is a Variable? (Biến là gì?)", a: ["Value changes", "Movement", "Costume", "Fixed number"], correct: 0, explain: "Biến là nơi lưu trữ giá trị có thể thay đổi (điểm, thời gian...)." },
+        { q: "19. Increase Score by 1? (Tăng điểm thêm 1?)", a: ["Set Score to 1", "Change Score by 1", "Set Score to 0", "Show var"], correct: 1, explain: "'Change by' dùng để cộng thêm, 'Set to' là đặt lại giá trị mới." },
+        { q: "20. Variable scope? (Phạm vi biến?)", a: ["Never seen", "Can be 'For all sprites'", "Only Cat", "Only Stage"], correct: 1, explain: "Có thể chọn 'For all sprites' (Toàn cục) để mọi nhân vật đều dùng được." },
+        { q: "21. 'Pen Down' does what? ('Đặt bút' làm gì?)", a: ["Stop", "Draw trail", "Lift pen", "Erase"], correct: 1, explain: "Khi nhân vật di chuyển sẽ để lại nét vẽ trên sân khấu." },
+        { q: "22. Use Pen in Scratch 3.0? (Dùng Bút trong Scratch 3.0?)", a: ["Plugin", "Add Extension", "Buy pro", "Impossible"], correct: 1, explain: "Phải nhấn nút 'Add Extension' (Mở rộng) ở góc dưới cùng bên trái." },
+        { q: "23. Forever -> Move -> Bounce? (Liên tục -> Đi -> Bật lại?)", a: ["Stops", "Moves back and forth", "Spins", "Disappears"], correct: 1, explain: "Nhân vật di chuyển qua lại liên tục trong sân khấu." },
+        { q: "24. Set x 0, Change 10, Change -10. Final? (Kết quả?)", a: ["10", "20", "0", "-10"], correct: 2, explain: "0 + 10 - 10 = 0." },
+        { q: "25. Delete a block? (Xóa khối lệnh?)", a: ["Drag to Palette", "Duplicate", "Double click", "Spacebar"], correct: 0, explain: "Kéo thả khối lệnh ngược về kho bên trái để xóa." },
+        { q: "26. Green Flag used to? (Cờ xanh dùng để?)", a: ["Stop", "Delete", "Start program", "Change bg"], correct: 2, explain: "Cờ xanh là nút Bắt đầu chạy chương trình." },
+        { q: "27. Block waits input? (Khối đợi nhập liệu?)", a: ["Say", "Ask ... and wait", "Broadcast", "Wait"], correct: 1, explain: "Khối 'Ask' hiện khung nhập liệu và dừng chương trình chờ người dùng gõ." },
+        { q: "28. Answer stored where? (Câu trả lời lưu ở đâu?)", a: ["Var Score", "Var 'Answer'", "Nowhere", "Stage"], correct: 1, explain: "Lưu trong biến có sẵn tên là 'Answer' (Trả lời) thuộc nhóm Cảm biến." },
+        { q: "29. 'NOT touching mouse'? (KHÔNG chạm chuột?)", a: ["Touching", "Does NOT touch", "Clicked", "Never"], correct: 1, explain: "NOT đảo ngược điều kiện. Đang chạm sẽ thành Sai, Không chạm thành Đúng." },
+        { q: "30. NOT a category? (KHÔNG phải nhóm lệnh?)", a: ["Motion", "Flying", "Looks", "Sensing"], correct: 1, explain: "Không có nhóm 'Flying' trong Scratch." }
+    ];
+
+    // Các biến toàn cục
+    let currentQ = 0;
+    let score = 0;
+    let userName = "";
+    let timeLeft = 30 * 60; // 30 phút tính bằng giây
+    let timerInterval;
+    let wrongAnswersLog = []; // Lưu lại các câu sai để xem lại
+
+    // Hàm bắt đầu
+    function startQuiz() {
+        const inputName = document.getElementById("username").value;
+        if(inputName.trim() === "") {
+            alert("Vui lòng nhập tên của con để bắt đầu nhé!");
+            return;
+        }
+        userName = inputName;
+        document.getElementById("display-name").innerText = "Thí sinh: " + userName;
+        
+        // Chuyển màn hình
+        document.getElementById("start-screen").style.display = "none";
+        document.getElementById("quiz-screen").style.display = "block";
+        
+        loadQuestion();
+        startTimer();
+    }
+
+    // Đồng hồ đếm ngược
+    function startTimer() {
+        timerInterval = setInterval(() => {
+            timeLeft--;
+            let m = Math.floor(timeLeft / 60);
+            let s = timeLeft % 60;
+            // Thêm số 0 đằng trước nếu nhỏ hơn 10
+            m = m < 10 ? "0" + m : m;
+            s = s < 10 ? "0" + s : s;
+            document.getElementById("time-left").innerText = `${m}:${s}`;
+
+            if(timeLeft <= 0) {
+                clearInterval(timerInterval);
+                finishQuiz(true); // Hết giờ tự nộp
+            }
+        }, 1000);
+    }
+
+    // Tải câu hỏi
+    function loadQuestion() {
+        const qData = questions[currentQ];
+        document.getElementById("current-q").innerText = currentQ + 1;
+        document.getElementById("question-text").innerText = qData.q;
+        
+        const optionsDiv = document.getElementById("options-container");
+        optionsDiv.innerHTML = "";
+        document.getElementById("feedback-text").style.display = "none";
+        document.getElementById("next-button").style.display = "none";
+
+        qData.a.forEach((ans, index) => {
+            const btn = document.createElement("button");
+            btn.className = "btn-opt";
+            btn.innerText = ans;
+            btn.onclick = () => checkAnswer(index, btn);
+            optionsDiv.appendChild(btn);
+        });
+    }
+
+    // Kiểm tra đáp án
+    function checkAnswer(selectedIndex, btnElement) {
+        const qData = questions[currentQ];
+        const allBtns = document.querySelectorAll(".options .btn-opt");
+        
+        allBtns.forEach(btn => btn.disabled = true); // Khóa nút
+
+        const feedback = document.getElementById("feedback-text");
+        feedback.style.display = "block";
+
+        if(selectedIndex === qData.correct) {
+            btnElement.classList.add("correct");
+            score++;
+            feedback.innerHTML = "<strong>✅ Chính xác!</strong><br>" + qData.explain;
+            feedback.style.borderColor = "#28a745";
+            feedback.style.backgroundColor = "#d4edda";
+            feedback.style.color = "#155724";
+        } else {
+            btnElement.classList.add("wrong");
+            allBtns[qData.correct].classList.add("correct"); // Hiện đáp án đúng
+            feedback.innerHTML = "<strong>❌ Sai rồi!</strong><br>" + qData.explain;
+            feedback.style.borderColor = "#dc3545";
+            feedback.style.backgroundColor = "#f8d7da";
+            feedback.style.color = "#721c24";
+
+            // Lưu vào log câu sai
+            wrongAnswersLog.push({
+                qIndex: currentQ,
+                selected: selectedIndex,
+                correct: qData.correct
+            });
+        }
+
+        document.getElementById("next-button").style.display = "block";
+    }
+
+    // Chuyển câu
+    function nextQuestion() {
+        currentQ++;
+        if(currentQ < questions.length) {
+            loadQuestion();
+        } else {
+            finishQuiz(false);
+        }
+    }
+
+    // Kết thúc và Hiển thị kết quả
+    function finishQuiz(isTimeout) {
+        clearInterval(timerInterval); // Dừng đồng hồ
+        document.getElementById("quiz-screen").style.display = "none";
+        document.getElementById("result-screen").style.display = "block";
+        
+        document.getElementById("result-name").innerText = userName;
+        document.getElementById("final-score").innerText = score;
+
+        // Tính thời gian đã làm
+        let timeSpent = (30 * 60) - timeLeft;
+        let m = Math.floor(timeSpent / 60);
+        let s = timeSpent % 60;
+        document.getElementById("time-taken").innerText = `${m} phút ${s} giây`;
+
+        let msg = "";
+        if(isTimeout) msg += "(Hết giờ làm bài!) <br>";
+        
+        if(score === 30) msg += "Xuất sắc! Bạn đã đúng tuyệt đối!";
+        else if(score >= 25) msg += "Rất tốt! Kiến thức của bạn rất vững.";
+        else if(score >= 15) msg += "Cần cố gắng ôn luyện thêm các phần sai nhé.";
+        else msg += "Hãy xem lại lý thuyết và làm lại bài nhé.";
+        
+        document.getElementById("result-msg").innerHTML = msg;
+
+        // Hiển thị phần xem lại câu sai
+        if(wrongAnswersLog.length > 0) {
+            const reviewArea = document.getElementById("review-area");
+            const listDiv = document.getElementById("wrong-answers-list");
+            reviewArea.style.display = "block";
+            
+            wrongAnswersLog.forEach(item => {
+                const q = questions[item.qIndex];
+                const div = document.createElement("div");
+                div.className = "review-item";
+                div.innerHTML = `
+                    <div class="review-q">${q.q}</div>
+                    <div>Bạn chọn: <span class="review-your-ans">${q.a[item.selected]}</span></div>
+                    <div>Đáp án đúng: <span class="review-correct-ans">${q.a[item.correct]}</span></div>
+                    <div class="review-explain">💡 ${q.explain}</div>
+                `;
+                listDiv.appendChild(div);
+            });
+        }
+    }
+
+</script>
+
+</body>
+</html>
